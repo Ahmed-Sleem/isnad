@@ -8,7 +8,8 @@ The repository contains the verification engine, a REST and WebSocket API, an MC
 
 ## Screenshots
 
-Chat: prose streams as it arrives; each marked quotation is held, checked, and then rendered as its own card.
+Chat: prose streams as it arrives; each marked quotation is held, checked, and then rendered as its own card
+where the model wrote it, with the prose that follows it still after it.
 
 ![Chat with a verified citation](docs/screenshots/01-chat-citation-light.png)
 
@@ -168,7 +169,7 @@ All surfaces call the same verification engine and return the same fields; none 
 
 ## Tests
 
-`bash scripts/verify.sh` runs the whole suite: 120 tests, lint, format, byte-compile, a wheel build that checks the pinned corpus data is packaged, and a credential scan.
+`bash scripts/verify.sh` runs the whole suite: 124 tests, lint, format, byte-compile, a wheel build that checks the pinned corpus data is packaged, and a credential scan.
 
 | Area | Test file |
 | --- | --- |

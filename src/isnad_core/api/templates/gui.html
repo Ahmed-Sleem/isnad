@@ -2705,6 +2705,7 @@ a { color: inherit; }
         request: m.request || null,
         report: m.report || null,
         citations: m.citations || null,
+        parts: m.parts || null,
         error: m.error || null,
         promptTokens: typeof m.tokens === 'number' ? m.tokens : null
       };
@@ -2996,16 +2997,34 @@ a { color: inherit; }
     return renderReportCard(entry.report, { durationMs: entry.durationMs });
   }
 
+  /* A message is a sequence of parts: the prose the model wrote, and one entry
+     for each marked quotation, in that order. Rendering follows the sequence, so
+     a card stands where the quotation was rather than in a block at the foot of
+     the answer. Messages saved before this existed carry text and citations
+     only, so their parts are derived the old way. */
+  function entryParts(entry) {
+    if (Array.isArray(entry.parts) && entry.parts.length) return entry.parts;
+    const parts = [];
+    if (entry.text) parts.push({ kind: 'prose', text: entry.text });
+    (entry.citations || []).forEach(function (citation) {
+      parts.push({ kind: 'citation', id: citation.id });
+    });
+    return parts;
+  }
+
   function assistantContentHtml(entry) {
     const parts = [];
     if (entry.kind === 'assistant' || entry.kind === 'streaming') {
-      /* The held citation cards are rendered inside the stream region, in
-         order, so the reader sees prose → checking → verified card exactly
-         where the model put the quotation. */
-      parts.push('<div class="rich" data-rich></div>');
-      (entry.citations || []).forEach(function (citation, index) {
-        parts.push('<div class="citation-slot" data-citation-id="' + escapeHtml(String(citation.id || index)) + '"' +
-          ' data-citation-index="' + index + '"></div>');
+      let citationIndex = 0;
+      entryParts(entry).forEach(function (part, index) {
+        if (part.kind === 'citation') {
+          parts.push('<div class="citation-slot" data-part="' + index + '"' +
+            ' data-citation-id="' + escapeHtml(String(part.id == null ? citationIndex : part.id)) + '"' +
+            ' data-citation-index="' + citationIndex + '"></div>');
+          citationIndex += 1;
+        } else {
+          parts.push('<div class="rich" data-rich data-part="' + index + '"></div>');
+        }
       });
     }
     if (entry.kind === 'error') {
@@ -3087,8 +3106,12 @@ a { color: inherit; }
         (actions.length ? '<div class="msg__actions">' + actions.join('') + '</div>' : '') +
       '</div>';
 
-    const rich = article.querySelector('[data-rich]');
-    if (rich) Rich.paint(rich, entry.text || '');
+    const parts = entryParts(entry);
+    article.querySelectorAll('[data-part]').forEach(function (node) {
+      if (!node.hasAttribute('data-rich')) return;
+      const part = parts[Number(node.dataset.part)];
+      Rich.paint(node, (part && part.text) || '');
+    });
     article.querySelectorAll('.citation-slot').forEach(function (slot) {
       const citation = (entry.citations || [])[Number(slot.dataset.citationIndex)];
       if (citation) slot.innerHTML = citationCardHtml(citation);
@@ -3291,25 +3314,20 @@ a { color: inherit; }
     const article = document.querySelector('[data-item-id="' + itemId + '"]');
     if (!entry || !article) return false;
 
-    const rich = article.querySelector('[data-rich]');
-    if (rich) Rich.paint(rich, entry.text || '');
+    const parts = entryParts(entry);
+    const nodes = article.querySelectorAll('[data-part]');
+    /* A new part changes the shape of the message, which the caller handles by
+       rebuilding it; here only the streaming text and the cards are refreshed. */
+    if (nodes.length !== parts.length) return false;
 
-    /* A slot is added the moment the model closes a marked block, so the
-       checking card stands where the quotation is while the source is queried;
-       the prose keeps streaming around it. */
-    const citations = entry.citations || [];
-    const slots = Array.prototype.slice.call(article.querySelectorAll('.citation-slot'));
-    const content = article.querySelector('.msg__content');
-    citations.forEach(function (citation, index) {
-      if (slots[index] || !content) return;
-      const slot = document.createElement('div');
-      slot.className = 'citation-slot';
-      slot.dataset.citationId = String(citation.id == null ? index : citation.id);
-      slot.dataset.citationIndex = String(index);
-      content.appendChild(slot);
-      slots[index] = slot;
+    nodes.forEach(function (node) {
+      if (!node.hasAttribute('data-rich')) return;
+      const part = parts[Number(node.dataset.part)];
+      Rich.paint(node, (part && part.text) || '');
     });
 
+    const citations = entry.citations || [];
+    const slots = Array.prototype.slice.call(article.querySelectorAll('.citation-slot'));
     slots.forEach(function (slot) {
       const citation = citations[Number(slot.dataset.citationIndex)];
       if (!citation) return;
@@ -3575,6 +3593,24 @@ a { color: inherit; }
     const startedAt = Date.now();
     let text = '';
     let citations = [];
+    let parts = [];
+
+    /* Prose joins the current text part; each marked block starts a new part
+       after it, so the message keeps the shape the model wrote. */
+    function appendProse(chunk) {
+      const last = parts.length ? parts[parts.length - 1] : null;
+      if (last && last.kind === 'prose') last.text += chunk;
+      else parts = parts.concat([{ kind: 'prose', text: chunk }]);
+    }
+    function appendCitationPart(id) {
+      parts = parts.concat([{ kind: 'citation', id: id }]);
+    }
+    function streamingItem() {
+      return {
+        kind: 'streaming', status: 'streaming',
+        text: text, citations: citations, parts: parts
+      };
+    }
 
     /* One block at a time: a new citation can only start after the previous
        one has been verified, so the cards keep their order. */
@@ -3584,7 +3620,8 @@ a { color: inherit; }
       events.forEach(function (event) {
         if (event.type === 'prose') {
           text += event.text;
-          Store.updateItem(chatId, placeholder.id, { kind: 'streaming', status: 'streaming', text: text, citations: citations });
+          appendProse(event.text);
+          Store.updateItem(chatId, placeholder.id, streamingItem());
         } else if (event.type === 'citation_start') {
           citations = citations.concat([{
             id: event.id,
@@ -3593,13 +3630,14 @@ a { color: inherit; }
             report: null,
             error: null
           }]);
-          Store.updateItem(chatId, placeholder.id, { kind: 'streaming', status: 'streaming', text: text, citations: citations });
+          appendCitationPart(event.id);
+          Store.updateItem(chatId, placeholder.id, streamingItem());
         } else if (event.type === 'citation_end') {
           const pendingCitation = citations[citations.length - 1];
           if (!pendingCitation || pendingCitation.id !== event.id) return;
           pendingCitation.modelQuote = event.quote;
           pendingCitation.state = 'checking';
-          Store.updateItem(chatId, placeholder.id, { kind: 'streaming', status: 'streaming', text: text, citations: citations });
+          Store.updateItem(chatId, placeholder.id, streamingItem());
           const snapshot = citations;
           const targetId = placeholder.id;
           queue = queue.then(function () {
@@ -3614,7 +3652,8 @@ a { color: inherit; }
             state: 'error',
             error: { title: 'Incomplete citation', tone: 'error', message: note, detail: '' }
           }]);
-          Store.updateItem(chatId, placeholder.id, { kind: 'streaming', status: 'streaming', text: text, citations: citations });
+          appendCitationPart(event.id);
+          Store.updateItem(chatId, placeholder.id, streamingItem());
         } else if (event.type === 'citation_invalid') {
           const reasons = {
             malformed_header: 'The model wrote a citation marker whose header did not parse (a required field was missing or repeated).',
@@ -3632,7 +3671,8 @@ a { color: inherit; }
               detail: 'reason: ' + event.reason
             }
           }]);
-          Store.updateItem(chatId, placeholder.id, { kind: 'streaming', status: 'streaming', text: text, citations: citations });
+          appendCitationPart(event.id || 0);
+          Store.updateItem(chatId, placeholder.id, streamingItem());
         }
       });
       patchStreamingItem(chatId, placeholder.id);
@@ -3640,7 +3680,7 @@ a { color: inherit; }
 
     try {
       Store.updateItem(chatId, placeholder.id, {
-        kind: 'streaming', status: 'streaming', text: '', citations: [], model: Model.label()
+        kind: 'streaming', status: 'streaming', text: '', citations: [], parts: [], model: Model.label()
       });
 
       const messages = chatMessagesFor(Store.chat(chatId), Store.chat(chatId).items.length - 1);
@@ -3662,7 +3702,8 @@ a { color: inherit; }
       ].filter(Boolean).join(' · ');
 
       Store.updateItem(chatId, placeholder.id, {
-        kind: 'assistant', status: 'complete', text: text, citations: citations, stats: stats
+        kind: 'assistant', status: 'complete', text: text, citations: citations,
+        parts: parts, stats: stats
       });
     } catch (err) {
       applyEvents(streamer.finish());
@@ -3670,11 +3711,11 @@ a { color: inherit; }
       if (described.tone === 'cancelled') {
         Store.updateItem(chatId, placeholder.id, {
           kind: 'assistant', status: 'complete', text: text, citations: citations,
-          stats: formatDuration(Date.now() - startedAt) + ' · stopped'
+          parts: parts, stats: formatDuration(Date.now() - startedAt) + ' · stopped'
         });
       } else {
         Store.updateItem(chatId, placeholder.id, {
-          kind: 'error', status: 'error', text: text, citations: citations,
+          kind: 'error', status: 'error', text: text, citations: citations, parts: parts,
           error: described, durationMs: Date.now() - startedAt
         });
         Toasts.show(described.title, 'error');
@@ -3710,7 +3751,8 @@ a { color: inherit; }
     const current = Store.item(chatId, itemId);
     if (!current) return;
     Store.updateItem(chatId, itemId, {
-      kind: 'streaming', status: 'streaming', text: current.text, citations: citations
+      kind: 'streaming', status: 'streaming', text: current.text, citations: citations,
+      parts: current.parts
     });
     patchStreamingItem(chatId, itemId);
   }
@@ -4559,7 +4601,8 @@ a { color: inherit; }
           const key = [
             Store.state.activeId, Store.state.mode,
             record ? record.items.length : 0,
-            last ? last.kind + ':' + last.status + ':' + (last.citations ? last.citations.map(function (c) { return c.state; }).join(',') : '') : ''
+            last ? last.kind + ':' + last.status + ':' + (last.parts ? last.parts.length : 0) + ':' +
+              (last.citations ? last.citations.map(function (c) { return c.state; }).join(',') : '') : ''
           ].join('|');
           if (container.getAttribute('data-key') !== key) {
             container.setAttribute('data-key', key);

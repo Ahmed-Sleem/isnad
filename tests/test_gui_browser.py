@@ -231,6 +231,21 @@ def test_chat_holds_quotations_until_the_source_answers(
     second = cards.nth(1).inner_text()
     assert "mismatch" in second or "not_found" in second
 
+    # Each card sits where the quotation was written, not in a block at the
+    # foot of the answer: the prose that follows a quotation comes after it.
+    order = page.evaluate(
+        "() => Array.from(document.querySelector('article.msg--assistant .msg__content').children)"
+        ".map(el => el.className.indexOf('citation-slot') === 0 ? 'citation' : 'prose')"
+    )
+    assert order == ["prose", "citation", "prose", "citation", "prose"], order
+    closing = page.evaluate(
+        "() => { const kids = Array.from("
+        "document.querySelector('article.msg--assistant .msg__content').children);"
+        " const prose = kids.filter(el => el.className.indexOf('citation-slot') !== 0);"
+        " return prose[prose.length - 1].innerText.includes('Both of those were marked'); }"
+    )
+    assert closing, "the closing prose did not land after the last card"
+
     # A quotation the pinned corpus does not contain is echoed only as the text
     # that was submitted, never as source wording: it may appear in the quoted
     # text row and on the submitted side of a difference, and nowhere else.
