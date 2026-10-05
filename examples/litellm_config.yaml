@@ -1,0 +1,11 @@
+model_list:
+  - model_name: your-model
+    litellm_params:
+      model: openai/your-model
+      api_key: os.environ/OPENAI_API_KEY
+
+guardrails:
+  - guardrail_name: isnad-citation-gate
+    litellm_params:
+      guardrail: isnad_core.integrations.litellm_guardrail.IsnadCitationGuardrail
+      mode: post_call

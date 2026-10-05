@@ -1,0 +1,246 @@
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- Assistant avatar: a 6x6 pixel spark.
+         Six, not eight: at 24px an 8x8 grid gives a 3px pixel, which reads as
+         fine detail rather than as pixel art. Six gives a 4px pixel. -->
+    <symbol id="px-spark" viewBox="0 0 6 6">
+      <rect x="2" y="0" width="2" height="1" fill="currentColor"/>
+      <rect x="1" y="1" width="4" height="1" fill="currentColor"/>
+      <rect x="0" y="2" width="6" height="2" fill="currentColor"/>
+      <rect x="1" y="4" width="4" height="1" fill="currentColor"/>
+      <rect x="2" y="5" width="2" height="1" fill="currentColor"/>
+    </symbol>
+
+    <!-- User avatar: a 6x6 pixel person, on the same coarser grid -->
+    <symbol id="px-user" viewBox="0 0 6 6">
+      <rect x="1" y="0" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="2" height="1" fill="currentColor"/>
+      <rect x="0" y="3" width="6" height="2" fill="currentColor"/>
+      <rect x="1" y="5" width="1" height="1" fill="currentColor"/>
+      <rect x="4" y="5" width="1" height="1" fill="currentColor"/>
+    </symbol>
+
+    <!-- App mark: 12x12 pixel grid -->
+    <symbol id="px-mark" viewBox="0 0 12 12">
+      <rect x="4" y="0" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="8" height="2" fill="currentColor"/>
+      <rect x="0" y="4" width="12" height="4" fill="currentColor"/>
+      <rect x="2" y="8" width="8" height="2" fill="currentColor"/>
+      <rect x="4" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="5" y="5" width="2" height="2" fill="var(--ui-bg-base)"/>
+    </symbol>
+
+    <symbol id="ic-plus" viewBox="0 0 16 16">
+      <path d="M7 2h2v5h5v2H9v5H7V9H2V7h5V2z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-search" viewBox="0 0 16 16">
+      <rect x="2" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="0" y="2" width="2" height="6" fill="currentColor"/>
+      <rect x="10" y="2" width="2" height="6" fill="currentColor"/>
+      <rect x="2" y="8" width="8" height="2" fill="currentColor"/>
+      <rect x="6" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="8" y="12" width="4" height="2" fill="currentColor"/>
+      <rect x="10" y="14" width="4" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-close" viewBox="0 0 16 16">
+      <path d="M3.3 2 8 6.7 12.7 2 14 3.3 9.3 8l4.7 4.7-1.3 1.3L8 9.3 3.3 14 2 12.7 6.7 8 2 3.3 3.3 2z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-trash" viewBox="0 0 16 16">
+      <rect x="4" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="6" y="2" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="4" width="12" height="2" fill="currentColor"/>
+      <rect x="2" y="6" width="2" height="6" fill="currentColor"/>
+      <rect x="6" y="6" width="4" height="6" fill="currentColor"/>
+      <rect x="12" y="6" width="2" height="6" fill="currentColor"/>
+      <rect x="2" y="12" width="12" height="2" fill="currentColor"/>
+      <rect x="4" y="14" width="8" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-copy" viewBox="0 0 16 16">
+      <rect x="2" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="2" height="6" fill="currentColor"/>
+      <rect x="8" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="8" y="4" width="8" height="2" fill="currentColor"/>
+      <rect x="8" y="6" width="2" height="2" fill="currentColor"/>
+      <rect x="14" y="6" width="2" height="6" fill="currentColor"/>
+      <rect x="2" y="8" width="8" height="2" fill="currentColor"/>
+      <rect x="8" y="12" width="8" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-check" viewBox="0 0 16 16">
+      <path d="M13.4 4 6.5 11 2.6 7.1 4 5.7l2.5 2.5L12 3.6 13.4 4z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-refresh" viewBox="0 0 16 16">
+      <rect x="4" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="0" y="4" width="2" height="6" fill="currentColor"/>
+      <rect x="14" y="4" width="2" height="2" fill="currentColor"/>
+      <rect x="14" y="8" width="2" height="2" fill="currentColor"/>
+      <rect x="2" y="10" width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="10" width="2" height="2" fill="currentColor"/>
+      <rect x="4" y="12" width="8" height="2" fill="currentColor"/>
+      <rect x="10" y="14" width="4" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-thumb-up" viewBox="0 0 16 16">
+      <rect x="10" y="0" width="4" height="2" fill="currentColor"/>
+      <rect x="8" y="2" width="6" height="2" fill="currentColor"/>
+      <rect x="6" y="4" width="6" height="2" fill="currentColor"/>
+      <rect x="4" y="6" width="12" height="2" fill="currentColor"/>
+      <rect x="2" y="8" width="14" height="2" fill="currentColor"/>
+      <rect x="0" y="10" width="16" height="4" fill="currentColor"/>
+      <rect x="2" y="14" width="12" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-thumb-down" viewBox="0 0 16 16">
+      <rect x="2" y="0" width="12" height="2" fill="currentColor"/>
+      <rect x="0" y="2" width="16" height="4" fill="currentColor"/>
+      <rect x="2" y="6" width="14" height="2" fill="currentColor"/>
+      <rect x="4" y="8" width="12" height="2" fill="currentColor"/>
+      <rect x="6" y="10" width="6" height="2" fill="currentColor"/>
+      <rect x="8" y="12" width="6" height="2" fill="currentColor"/>
+      <rect x="10" y="14" width="4" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-pencil" viewBox="0 0 16 16">
+      <rect x="12" y="0" width="4" height="2" fill="currentColor"/>
+      <rect x="10" y="2" width="4" height="2" fill="currentColor"/>
+      <rect x="8" y="4" width="4" height="2" fill="currentColor"/>
+      <rect x="6" y="6" width="4" height="2" fill="currentColor"/>
+      <rect x="4" y="8" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="0" y="12" width="6" height="2" fill="currentColor"/>
+      <rect x="0" y="14" width="4" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-attach" viewBox="0 0 16 16">
+      <rect x="6" y="0" width="6" height="2" fill="currentColor"/>
+      <rect x="4" y="2" width="4" height="2" fill="currentColor"/>
+      <rect x="10" y="2" width="4" height="2" fill="currentColor"/>
+      <rect x="4" y="4" width="2" height="10" fill="currentColor"/>
+      <rect x="12" y="4" width="2" height="10" fill="currentColor"/>
+      <rect x="4" y="14" width="10" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-send" viewBox="0 0 16 16">
+      <path d="M1.5 8 14 1.5 11 8l3 6.5L1.5 8z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-stop" viewBox="0 0 16 16">
+      <rect x="3" y="3" width="10" height="10" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-menu" viewBox="0 0 16 16">
+      <path d="M1 3h14v2H1V3zm0 4h14v2H1V7zm0 4h14v2H1v-2z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-sun" viewBox="0 0 16 16">
+      <rect x="6" y="0" width="4" height="4" fill="currentColor"/>
+      <rect x="4" y="4" width="8" height="8" fill="currentColor"/>
+      <rect x="0" y="6" width="2" height="4" fill="currentColor"/>
+      <rect x="14" y="6" width="2" height="4" fill="currentColor"/>
+      <rect x="6" y="12" width="4" height="4" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-moon" viewBox="0 0 16 16">
+      <rect x="6" y="0" width="6" height="2" fill="currentColor"/>
+      <rect x="4" y="2" width="6" height="2" fill="currentColor"/>
+      <rect x="2" y="4" width="6" height="2" fill="currentColor"/>
+      <rect x="2" y="6" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="10" width="6" height="2" fill="currentColor"/>
+      <rect x="4" y="12" width="6" height="2" fill="currentColor"/>
+      <rect x="6" y="14" width="6" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-settings" viewBox="0 0 16 16">
+      <rect x="4" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="12" height="2" fill="currentColor"/>
+      <rect x="0" y="4" width="4" height="8" fill="currentColor"/>
+      <rect x="12" y="4" width="4" height="8" fill="currentColor"/>
+      <rect x="6" y="6" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="12" width="12" height="2" fill="currentColor"/>
+      <rect x="4" y="14" width="8" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-download" viewBox="0 0 16 16">
+      <path d="M7 1h2v7h3.5L8 13 3.5 8H7V1zM2 14h12v2H2v-2z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-chat" viewBox="0 0 16 16">
+      <rect x="2" y="0" width="12" height="2" fill="currentColor"/>
+      <rect x="0" y="2" width="2" height="6" fill="currentColor"/>
+      <rect x="14" y="2" width="2" height="6" fill="currentColor"/>
+      <rect x="2" y="8" width="12" height="2" fill="currentColor"/>
+      <rect x="2" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="0" y="14" width="2" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-warn" viewBox="0 0 16 16">
+      <path d="M8 1 15 14H1L8 1zm0 5v4h.9V6H8zm0 5.2v1h.9v-1H8z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-info" viewBox="0 0 16 16">
+      <rect x="4" y="0" width="8" height="2" fill="currentColor"/>
+      <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="0" y="4" width="2" height="8" fill="currentColor"/>
+      <rect x="6" y="4" width="4" height="2" fill="currentColor"/>
+      <rect x="14" y="4" width="2" height="8" fill="currentColor"/>
+      <rect x="6" y="8" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="12" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="4" y="14" width="8" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-spark-small" viewBox="0 0 16 16">
+      <path d="M8 1l1.6 5.4L15 8l-5.4 1.6L8 15l-1.6-5.4L1 8l5.4-1.6L8 1z" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-markdown" viewBox="0 0 16 16">
+      <rect x="0" y="0" width="16" height="2" fill="currentColor"/>
+      <rect x="0" y="2" width="2" height="12" fill="currentColor"/>
+      <rect x="14" y="2" width="2" height="12" fill="currentColor"/>
+      <rect x="4" y="4" width="2" height="2" fill="currentColor"/>
+      <rect x="10" y="4" width="2" height="2" fill="currentColor"/>
+      <rect x="4" y="6" width="8" height="2" fill="currentColor"/>
+      <rect x="4" y="8" width="2" height="2" fill="currentColor"/>
+      <rect x="10" y="8" width="2" height="2" fill="currentColor"/>
+      <rect x="6" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="0" y="14" width="16" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-speak" viewBox="0 0 16 16">
+      <rect x="2" y="2" width="2" height="2" fill="currentColor"/>
+      <rect x="2" y="4" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="6" width="6" height="4" fill="currentColor"/>
+      <rect x="10" y="6" width="4" height="4" fill="currentColor"/>
+      <rect x="2" y="10" width="4" height="2" fill="currentColor"/>
+      <rect x="2" y="12" width="2" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-anchor" viewBox="0 0 16 16">
+      <rect x="10" y="0" width="6" height="2" fill="currentColor"/>
+      <rect x="8" y="2" width="4" height="2" fill="currentColor"/>
+      <rect x="14" y="2" width="2" height="4" fill="currentColor"/>
+      <rect x="6" y="4" width="4" height="2" fill="currentColor"/>
+      <rect x="4" y="6" width="4" height="2" fill="currentColor"/>
+      <rect x="12" y="6" width="2" height="2" fill="currentColor"/>
+      <rect x="2" y="8" width="4" height="2" fill="currentColor"/>
+      <rect x="10" y="8" width="2" height="2" fill="currentColor"/>
+      <rect x="0" y="10" width="4" height="4" fill="currentColor"/>
+      <rect x="8" y="10" width="2" height="2" fill="currentColor"/>
+      <rect x="6" y="12" width="2" height="2" fill="currentColor"/>
+      <rect x="0" y="14" width="6" height="2" fill="currentColor"/>
+    </symbol>
+
+    <symbol id="ic-empty" viewBox="0 0 16 16">
+      <path d="M2 2h12v12H2V2zm2 2v3h8V4H4zm0 5v3h5V9H4z" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>

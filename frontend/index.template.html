@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>ISNAD CORE — source-checked chat</title>
+  <meta name="description" content="Chat with a model whose Qur’an and hadith quotations are checked against pinned sources before you see them.">
+  <!-- The ISNAD mark, inlined: a page opened from disk must fetch nothing. -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxNiAxNic+PHJlY3Qgd2lkdGg9JzE2JyBoZWlnaHQ9JzE2JyBmaWxsPScjZmY1YTFmJy8+PGcgZmlsbD0nIzFjMWIxOScgdHJhbnNmb3JtPSd0cmFuc2xhdGUoMiAyKSc+PHJlY3QgeD0nNCcgeT0nMCcgd2lkdGg9JzQnIGhlaWdodD0nMicvPjxyZWN0IHg9JzInIHk9JzInIHdpZHRoPSc4JyBoZWlnaHQ9JzInLz48cmVjdCB4PScwJyB5PSc0JyB3aWR0aD0nMTInIGhlaWdodD0nNCcvPjxyZWN0IHg9JzInIHk9JzgnIHdpZHRoPSc4JyBoZWlnaHQ9JzInLz48cmVjdCB4PSc0JyB5PScxMCcgd2lkdGg9JzQnIGhlaWdodD0nMicvPjwvZz48cmVjdCB4PSc3JyB5PSc3JyB3aWR0aD0nMicgaGVpZ2h0PScyJyBmaWxsPScjZmY1YTFmJy8+PC9zdmc+">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('isnad.gui.theme.v1');
+        var theme = saved === 'light' || saved === 'dark'
+          ? saved
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+  <!-- ISNAD_CSS -->
+</head>
+<body>
+  <!-- ISNAD_ICONS -->
+  <div class="bg" aria-hidden="true"></div>
+  <div class="app">
+    <div class="shell" id="shell" data-sidebar="expanded">
+      <aside class="sidebar" id="sidebar" aria-label="Conversations">
+        <div class="sidebar__head">
+          <div class="wordmark">
+            <svg class="wordmark__mark" aria-hidden="true"><use href="#px-mark"></use></svg>
+            <span class="wordmark__text">ISNAD</span>
+          </div>
+          <button class="iconbtn iconbtn--xs" id="collapseBtn" type="button"
+                  aria-label="Collapse sidebar" title="Collapse sidebar">
+            <svg aria-hidden="true" class="icon-mirror"><use href="#ic-menu"></use></svg>
+          </button>
+        </div>
+
+        <div class="sidebar__actions">
+          <button class="btn btn--primary btn--block" id="newChatBtn" type="button">
+            <svg aria-hidden="true"><use href="#ic-plus"></use></svg>
+            New chat
+          </button>
+        </div>
+
+        <div class="sidebar__search">
+          <div class="searchfield" role="search">
+            <svg class="searchfield__icon" aria-hidden="true"><use href="#ic-search"></use></svg>
+            <input class="searchfield__input" id="convSearch" type="search"
+                   placeholder="Search conversations…" aria-label="Search conversations"
+                   autocomplete="off" spellcheck="false">
+            <button class="searchfield__clear" id="clearSearchBtn" type="button"
+                    aria-label="Clear search" hidden>
+              <svg aria-hidden="true"><use href="#ic-close"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <p class="sidebar__count" id="historyCount" hidden></p>
+        <nav class="sidebar__list" id="convList" aria-label="Saved conversations"></nav>
+
+        <div class="sidebar__foot">
+          <button class="userchip" id="settingsBtn" type="button" aria-haspopup="dialog">
+            <span class="avatar avatar--sm avatar--user" aria-hidden="true">
+              <svg><use href="#ic-settings"></use></svg>
+            </span>
+            <span class="userchip__meta">
+              <span class="userchip__name">Settings</span>
+              <span class="userchip__role">Model · API · appearance</span>
+            </span>
+            <svg class="userchip__chev" aria-hidden="true"><use href="#ic-settings"></use></svg>
+          </button>
+        </div>
+      </aside>
+
+      <main class="surface" id="surface">
+        <header class="surface__head">
+          <button class="iconbtn iconbtn--xs" id="menuBtn" type="button"
+                  aria-label="Show conversations" title="Show conversations"
+                  aria-controls="sidebar" aria-expanded="true">
+            <svg aria-hidden="true"><use href="#ic-menu"></use></svg>
+          </button>
+          <div class="surface__titlewrap">
+            <h1 class="surface__heading" id="convTitle">New chat</h1>
+            <span class="badge badge--verification" title="Quotations are checked against pinned sources">SOURCE CHECK</span>
+          </div>
+          <div class="surface__tools">
+            <button class="connection-badge connection-badge--action" id="modelBadge" type="button"
+                    data-state="unavailable" title="Model settings"></button>
+            <span class="connection-badge" id="apiBadge" data-state="checking" role="status"
+                  aria-live="polite">API CHECKING</span>
+            <button class="iconbtn" id="refreshApiBtn" type="button"
+                    aria-label="Refresh connection status" title="Refresh connection">
+              <svg aria-hidden="true"><use href="#ic-refresh"></use></svg>
+            </button>
+            <button class="iconbtn" id="exportBtn" type="button"
+                    aria-label="Export conversation" title="Export conversation">
+              <svg aria-hidden="true"><use href="#ic-download"></use></svg>
+            </button>
+            <button class="iconbtn" id="themeBtn" type="button"
+                    aria-label="Switch to dark theme" title="Switch theme">
+              <svg aria-hidden="true" id="themeIcon"><use href="#ic-moon"></use></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="surface__body" id="scrollArea" data-scroll-top="false" data-scroll-bottom="false">
+          <div class="surface__content" id="messages" aria-live="polite" aria-relevant="additions text"></div>
+        </div>
+
+        <form class="composer" id="composerForm" novalidate>
+          <div class="composer__inner">
+            <div class="composer__box">
+              <div class="mode-switch" role="group" aria-label="Mode">
+                <button class="mode-switch__opt" id="modeChat" type="button" aria-pressed="true">
+                  <svg aria-hidden="true"><use href="#ic-spark-small"></use></svg>
+                  Chat
+                </button>
+                <button class="mode-switch__opt" id="modeVerify" type="button" aria-pressed="false">
+                  <svg aria-hidden="true"><use href="#ic-check"></use></svg>
+                  Verify a quote
+                </button>
+              </div>
+
+              <div class="verify-fields" id="verifyFields" hidden>
+                <label class="verify-field" for="sourceSelect">
+                  <span class="verify-field__label">Source</span>
+                  <span class="select verify-field__select-wrap">
+                    <select id="sourceSelect" class="verify-control" name="source_type" aria-describedby="referenceHint">
+                      <option value="quran">Qur’an</option>
+                      <option value="hadith">Hadith</option>
+                    </select>
+                    <svg class="select__chev" aria-hidden="true" viewBox="0 0 16 16">
+                      <path d="M3 6h10l-5 6-5-6z" fill="currentColor"></path>
+                    </svg>
+                  </span>
+                </label>
+                <label class="verify-field" for="languageSelect">
+                  <span class="verify-field__label">Language</span>
+                  <span class="select verify-field__select-wrap">
+                    <select id="languageSelect" class="verify-control" name="language" aria-describedby="referenceHint">
+                      <option value="ar">Arabic</option>
+                      <option value="en">English</option>
+                    </select>
+                    <svg class="select__chev" aria-hidden="true" viewBox="0 0 16 16">
+                      <path d="M3 6h10l-5 6-5-6z" fill="currentColor"></path>
+                    </svg>
+                  </span>
+                </label>
+                <label class="verify-field verify-field--reference" for="referenceInput">
+                  <span class="verify-field__label">Reference <span class="verify-field__optional">optional</span></span>
+                  <input class="verify-control" id="referenceInput" name="reference" type="text"
+                         maxlength="64" autocomplete="off" spellcheck="false"
+                         placeholder="2:255" aria-describedby="referenceHint">
+                </label>
+              </div>
+
+              <label class="sr-only" for="composerInput">Message or quoted text</label>
+              <textarea class="composer__field" id="composerInput" name="quote"
+                        placeholder="Ask anything… quotations will be checked before you see them"
+                        rows="1" maxlength="4000" autocomplete="off" spellcheck="true" dir="auto"
+                        aria-describedby="referenceHint charCount"></textarea>
+
+              <div class="composer__meta">
+                <span id="referenceHint">You may provide a quote, a source reference, or both.</span>
+                <span id="charCount" aria-live="off">0 / 4,000</span>
+              </div>
+              <div class="composer__bar">
+                <span class="composer__hint" id="privacyHint">Enter to send · Shift+Enter for a new line</span>
+                <button class="iconbtn iconbtn--xs" id="stopBtn" type="button"
+                        aria-label="Stop" title="Stop" hidden>
+                  <svg aria-hidden="true"><use href="#ic-stop"></use></svg>
+                </button>
+                <button class="btn btn--primary btn--sm" id="sendBtn" type="submit" disabled>
+                  <svg aria-hidden="true" id="sendIcon"><use href="#ic-send"></use></svg>
+                  <span id="sendBtnLabel">Send</span>
+                </button>
+              </div>
+            </div>
+            <p class="composer__note">Quotations are checked against the pinned sources. A match status is textual correspondence only — not a hadith authenticity grade or religious ruling. Grades and graders are shown only where a source states them; this interface never infers one. A failed check is not a not-found result.</p>
+          </div>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop" data-visible="false" hidden></div>
+  <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+
+  <dialog class="settings-dialog" id="settingsDialog" aria-labelledby="settingsTitle">
+    <div class="settings-dialog__head">
+      <div>
+        <h2 class="settings-dialog__title" id="settingsTitle">Settings</h2>
+        <p class="settings-dialog__intro">The model you chat with, the API that checks quotations, and how this page looks.</p>
+      </div>
+      <button class="iconbtn iconbtn--xs" id="closeSettingsBtn" type="button" aria-label="Close settings">
+        <svg aria-hidden="true"><use href="#ic-close"></use></svg>
+      </button>
+    </div>
+
+    <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+      <button class="settings-tabs__tab" type="button" role="tab" data-settings-tab="model"
+              aria-selected="true" id="tabModel" aria-controls="panelModel">Model</button>
+      <button class="settings-tabs__tab" type="button" role="tab" data-settings-tab="api"
+              aria-selected="false" id="tabApi" aria-controls="panelApi">Verification API</button>
+      <button class="settings-tabs__tab" type="button" role="tab" data-settings-tab="appearance"
+              aria-selected="false" id="tabAppearance" aria-controls="panelAppearance">Appearance</button>
+    </div>
+
+    <div class="settings-dialog__body">
+      <div class="settings-panel" role="tabpanel" id="panelModel" data-settings-panel="model" aria-labelledby="tabModel">
+        <label class="verify-field" for="providerSelect">
+          <span class="verify-field__label">Provider</span>
+          <span class="select verify-field__select-wrap">
+            <select class="verify-control" id="providerSelect">
+              <option value="openai">OpenAI</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="groq">Groq</option>
+              <option value="ollama">Ollama (local)</option>
+              <option value="litellm">LiteLLM proxy (local)</option>
+              <option value="custom">Other OpenAI-compatible endpoint</option>
+            </select>
+            <svg class="select__chev" aria-hidden="true" viewBox="0 0 16 16">
+              <path d="M3 6h10l-5 6-5-6z" fill="currentColor"></path>
+            </svg>
+          </span>
+        </label>
+
+        <label class="verify-field" for="modelBaseInput">
+          <span class="verify-field__label">Model base URL</span>
+          <input class="verify-control" id="modelBaseInput" type="url" inputmode="url"
+                 autocomplete="off" placeholder="https://api.openai.com/v1">
+        </label>
+
+        <label class="verify-field" for="modelNameInput">
+          <span class="verify-field__label">Model name</span>
+          <input class="verify-control" id="modelNameInput" type="text" autocomplete="off"
+                 spellcheck="false" placeholder="gpt-4o-mini">
+        </label>
+
+        <label class="verify-field" for="modelKeyInput">
+          <span class="verify-field__label">API key</span>
+          <span class="key-row">
+            <input class="verify-control" id="modelKeyInput" type="password" autocomplete="off"
+                   spellcheck="false" placeholder="sk-…">
+            <button class="btn btn--sm" id="toggleKeyBtn" type="button">Show</button>
+          </span>
+        </label>
+
+        <label class="checkbox-row" for="rememberKeyInput">
+          <input type="checkbox" id="rememberKeyInput">
+          <span>Remember the key on this device</span>
+        </label>
+        <p class="settings-help settings-help--warning">Off by default: the key is then kept in this tab’s memory only, and a reload forgets it. Turning this on writes the key into this browser’s local storage in readable form — anyone with access to this device, or to a script running on this page, can read it. The key is sent only to the model endpoint above.</p>
+
+        <div class="settings-row">
+          <span class="settings-row__label" id="tempLabel">Temperature</span>
+          <div class="settings-row__control">
+            <input class="verify-control verify-control--number" id="temperatureInput" type="number"
+                   min="0" max="2" step="0.1" value="0.3" aria-labelledby="tempLabel">
+          </div>
+        </div>
+
+        <p class="settings-help" id="promptStatus">The citation protocol prompt has not loaded yet.</p>
+        <p class="settings-help">Providers that block browser requests need a small local proxy; the LiteLLM setup in <code>docs/integrations.md</code> is one. The protocol prompt is served by the verification API at <code>/v1/system-prompt</code>, so the model and the checker can never disagree about the markers.</p>
+
+        <div class="settings-dialog__actions">
+          <button class="btn btn--danger btn--sm" id="forgetKeyBtn" type="button">Forget stored key</button>
+          <span class="settings-dialog__spacer"></span>
+          <button class="btn btn--sm" id="cancelSettingsBtn" type="button">Cancel</button>
+          <button class="btn btn--primary btn--sm" id="saveSettingsBtn" type="button">Save</button>
+        </div>
+      </div>
+
+      <div class="settings-panel" role="tabpanel" id="panelApi" data-settings-panel="api" hidden aria-labelledby="tabApi">
+        <label class="verify-field" for="apiBaseInput">
+          <span class="verify-field__label">API base URL</span>
+          <input class="verify-control" id="apiBaseInput" type="url" inputmode="url"
+                 autocomplete="url" placeholder="Leave blank to use this site’s origin">
+        </label>
+        <p class="settings-help">The UI calls <code>/v1/capabilities</code>, <code>/v1/system-prompt</code>, <code>/health/ready</code>, and <code>/v1/verify</code>. A different origin must allow this UI origin in <code>ISNAD_CORS_ORIGINS</code>. Do not put keys, passwords, or other secrets in this field.</p>
+        <p class="settings-help">Readiness confirms the API and pinned local data are loaded; it does not guarantee that the remote HadeethEnc service is reachable.</p>
+
+        <div class="settings-dialog__actions">
+          <button class="btn btn--danger btn--sm" id="clearHistoryBtn" type="button">Clear local history</button>
+          <span class="settings-dialog__spacer"></span>
+          <button class="btn btn--sm" id="cancelSettingsBtn2" type="button"
+                  onclick="document.getElementById('settingsDialog').close()">Cancel</button>
+          <button class="btn btn--primary btn--sm" id="saveSettingsBtn2" type="button">Save</button>
+        </div>
+      </div>
+
+      <div class="settings-panel" role="tabpanel" id="panelAppearance" data-settings-panel="appearance" hidden aria-labelledby="tabAppearance">
+        <div class="settings-row">
+          <span class="settings-row__label" id="themeLabel">Theme</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="themeLabel">
+            <button class="segmented__opt" type="button" role="radio" data-theme-opt="dark" aria-checked="false">
+              <svg aria-hidden="true"><use href="#ic-moon"></use></svg>Dark
+            </button>
+            <button class="segmented__opt" type="button" role="radio" data-theme-opt="light" aria-checked="true">
+              <svg aria-hidden="true"><use href="#ic-sun"></use></svg>Light
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row__label" id="dirLabel">Layout direction</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="dirLabel">
+            <button class="segmented__opt" type="button" role="radio" data-dir="ltr" aria-checked="true">Left to right</button>
+            <button class="segmented__opt" type="button" role="radio" data-dir="rtl" aria-checked="false">Right to left</button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row__label" id="tsLabel">Show timestamps</span>
+          <button class="switch" type="button" role="switch" id="tsSwitch" aria-checked="true" aria-labelledby="tsLabel">
+            <span class="switch__thumb"></span>
+          </button>
+        </div>
+
+        <div class="settings-dialog__actions">
+          <span class="settings-dialog__spacer"></span>
+          <button class="btn btn--sm" id="cancelSettingsBtn3" type="button"
+                  onclick="document.getElementById('settingsDialog').close()">Close</button>
+        </div>
+      </div>
+
+      <p class="settings-error" id="settingsError" role="alert" hidden></p>
+    </div>
+  </dialog>
+
+  <dialog class="settings-dialog settings-dialog--wide" id="promptDialog" aria-labelledby="promptTitle">
+    <div class="settings-dialog__head">
+      <div>
+        <h2 class="settings-dialog__title" id="promptTitle">Citation protocol prompt</h2>
+        <p class="settings-dialog__intro">Injected as the system message of every conversation, so the model marks quotations in a form this page can check. Version <span id="promptVersion">not loaded</span>.</p>
+      </div>
+      <button class="iconbtn iconbtn--xs" id="closePromptBtn" type="button" aria-label="Close">
+        <svg aria-hidden="true"><use href="#ic-close"/></svg>
+      </button>
+    </div>
+    <div class="settings-dialog__body">
+      <pre class="prompt-body" id="promptText" dir="ltr"></pre>
+    </div>
+  </dialog>
+
+  <noscript><div class="noscript">This interface requires JavaScript. Please enable it and reload.</div></noscript>
+  <!-- ISNAD_APP -->
+</body>
+</html>

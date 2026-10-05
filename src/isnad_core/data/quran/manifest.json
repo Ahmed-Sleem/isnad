@@ -1,0 +1,23 @@
+{
+  "dataset": "Tanzil Quran Text (Uthmani)",
+  "source": "Tanzil Project",
+  "source_url": "https://tanzil.net/",
+  "download_page": "https://tanzil.net/download/",
+  "version": "1.1",
+  "format": "XML",
+  "options": {
+    "quranType": "uthmani",
+    "outType": "xml",
+    "marks": true,
+    "sajdah": true,
+    "rub": false,
+    "tatweel": true,
+    "stanween": false
+  },
+  "license": "Creative Commons Attribution 3.0",
+  "upstream_terms_summary": "Verbatim copies may be copied and distributed; do not change the text. Identify the Tanzil Project as the source and link to https://tanzil.net/. Preserve the upstream notice in the corpus file.",
+  "sha256": "8c5aeae20363a98f6963720d29fce040ca8b56a8e75f8b564c257fce7f6d0417",
+  "surah_count": 114,
+  "ayah_count": 6236,
+  "upstream_header_required": true
+}
