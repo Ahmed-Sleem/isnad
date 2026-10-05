@@ -2284,7 +2284,9 @@
   function openSettings(tab) {
     const dialog = $('#settingsDialog');
     const settings = Store.state.settings;
-    const which = tab || 'model';
+    /* Called directly as a click handler the argument is an event, not a tab
+       name, so only a known tab name is honoured. */
+    const which = (tab === 'api' || tab === 'appearance') ? tab : 'model';
     $$('[data-settings-tab]').forEach(function (button) {
       button.setAttribute('aria-selected', String(button.dataset.settingsTab === which));
     });
@@ -2531,7 +2533,7 @@
     });
     $('#modelBadge').addEventListener('click', function () { openSettings('model'); });
 
-    $('#settingsBtn').addEventListener('click', openSettings);
+    $('#settingsBtn').addEventListener('click', function () { openSettings('model'); });
     $('#closeSettingsBtn').addEventListener('click', closeSettings);
     $('#cancelSettingsBtn').addEventListener('click', closeSettings);
     $('#saveSettingsBtn').addEventListener('click', saveSettings);

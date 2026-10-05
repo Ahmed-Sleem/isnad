@@ -42,6 +42,14 @@ A successful response has the stable `VerifyResponse` schema from `src/isnad_cor
 
 Responses set `Cache-Control: no-store`, `X-Request-ID`, and `X-Content-Type-Options: nosniff`.
 
+### Citation protocol prompt
+
+```http
+GET /v1/system-prompt
+```
+
+Returns the versioned prompt (`isnad-citation-protocol-v1`) that defines the marker syntax a model must use for quotations, the reference formats, the status vocabulary, and what the statuses do not mean. A client injects `prompt` as the conversation's system message and checks the answer with the same markers, so the model and the verifier cannot drift apart about the protocol. The response also carries `block_open_marker` and `block_close_marker`, which equal the markers `isnad_core.streaming` enforces.
+
 ## Served interface
 
 The same app serves a verification interface built on this contract:
@@ -52,7 +60,7 @@ GET /gui               # the same page when another service owns the root path
 GET /gui/standalone.html   # the same interface as a downloadable single file
 ```
 
-The page is one self-contained file: no external scripts, stylesheets, fonts or images, and no network request at all until it calls the API. It reads `/v1/capabilities` (limits, statuses, sources, marker protocol), `/health/ready` (loaded editions) and `POST /v1/verify`. The connection chip reports `API READY` when capabilities answered, and `API UNREACHABLE` when the base URL, the service, or the CORS allow-list is wrong; readiness is shown separately, because a reachable API does not mean the remote HadeethEnc service is reachable.
+The page is one self-contained file: no external scripts, stylesheets, fonts or images, and no network request at all until it calls the API. It reads `/v1/capabilities` (limits, statuses, sources, marker protocol), `/health/ready` (loaded editions), `/v1/system-prompt` (the prompt it injects as the system message) and `POST /v1/verify`. In chat mode it also streams from the model endpoint the user configures in Model settings. The connection chip reports `API READY` when capabilities answered, and `API UNREACHABLE` when the base URL, the service, or the CORS allow-list is wrong; readiness is shown separately, because a reachable API does not mean the remote HadeethEnc service is reachable.
 
 `/gui/standalone.html` is offered as an attachment. Opened from disk it has no same-origin API, so its Connection settings take a base URL and it sends credentialed-free `fetch` requests to that origin, which must list the page's origin in `ISNAD_CORS_ORIGINS`. The field rejects non-`http(s)` values, URLs carrying userinfo, and anything that is not a bare base: no secret belongs in a page.
 

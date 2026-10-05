@@ -218,6 +218,52 @@ def test_chat_holds_quotations_until_the_source_answers(
     context.close()
 
 
+def test_settings_dialog_opens_on_a_visible_panel(server_url, browser) -> None:
+    page = browser.new_page(viewport={"width": 1400, "height": 950})
+    errors: list[str] = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    page.goto(server_url, wait_until="load")
+    page.wait_for_selector('#apiBadge[data-state="ready"]', timeout=20000)
+
+    # A dialog whose panels are all hidden looks like an empty box: the fields of
+    # the panel selected on open must be on screen.
+    page.click("#settingsBtn")
+    page.wait_for_selector("#settingsDialog[open]")
+    assert page.locator("#providerSelect").is_visible()
+    assert page.locator("#modelBaseInput").is_visible()
+    assert page.locator("#modelKeyInput").get_attribute("type") == "password"
+    assert not page.locator("#apiBaseInput").is_visible()
+    assert not page.locator('[data-settings-panel="appearance"]').is_visible()
+
+    page.click('[data-settings-tab="api"]')
+    assert page.locator("#apiBaseInput").is_visible()
+    assert not page.locator("#providerSelect").is_visible()
+
+    page.click('[data-settings-tab="appearance"]')
+    assert page.locator("#tsSwitch").is_visible()
+    assert page.locator('[data-dir="rtl"]').is_visible()
+
+    # Exactly one panel is shown at a time, whichever tab is selected.
+    visible_panels = page.evaluate(
+        "() => Array.from(document.querySelectorAll('[data-settings-panel]'))"
+        ".filter(p => !p.hasAttribute('hidden')).map(p => p.dataset.settingsPanel)"
+    )
+    assert visible_panels == ["appearance"]
+    selected = page.evaluate(
+        "() => Array.from(document.querySelectorAll('[data-settings-tab]'))"
+        ".filter(b => b.getAttribute('aria-selected') === 'true')"
+        ".map(b => b.dataset.settingsTab)"
+    )
+    assert selected == ["appearance"]
+
+    page.click("#cancelSettingsBtn3")
+    page.wait_for_selector("#settingsDialog", state="hidden")
+    assert errors == []
+    page.close()
+
+
 def test_interface_states_that_a_source_failure_decided_nothing(server_url, browser) -> None:
     # A fresh context with the base URL seeded before any page script runs: the
     # interface persists its own settings on unload, so writing them from a live
