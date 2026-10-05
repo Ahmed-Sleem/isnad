@@ -1455,12 +1455,27 @@
     const rich = article.querySelector('[data-rich]');
     if (rich) Rich.paint(rich, entry.text || '');
 
-    article.querySelectorAll('.citation-slot').forEach(function (slot) {
-      const citation = (entry.citations || [])[Number(slot.dataset.citationIndex)];
+    /* A slot is added the moment the model closes a marked block, so the
+       checking card stands where the quotation is while the source is queried;
+       the prose keeps streaming around it. */
+    const citations = entry.citations || [];
+    const slots = Array.prototype.slice.call(article.querySelectorAll('.citation-slot'));
+    const content = article.querySelector('.msg__content');
+    citations.forEach(function (citation, index) {
+      if (slots[index] || !content) return;
+      const slot = document.createElement('div');
+      slot.className = 'citation-slot';
+      slot.dataset.citationId = String(citation.id == null ? index : citation.id);
+      slot.dataset.citationIndex = String(index);
+      content.appendChild(slot);
+      slots[index] = slot;
+    });
+
+    slots.forEach(function (slot) {
+      const citation = citations[Number(slot.dataset.citationIndex)];
       if (!citation) return;
-      const html = citationCardHtml(citation);
       if (slot.dataset.rendered === citation.state && slot.dataset.renderedRef === String(citation.header.reference)) return;
-      slot.innerHTML = html;
+      slot.innerHTML = citationCardHtml(citation);
       slot.dataset.rendered = citation.state;
       slot.dataset.renderedRef = String(citation.header.reference);
     });

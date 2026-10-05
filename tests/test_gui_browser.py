@@ -84,6 +84,37 @@ def browser():  # noqa: ANN201 - playwright types are optional dependencies
         instance.close()
 
 
+@pytest.fixture(scope="module")
+def slow_verify_api() -> Iterator[str]:
+    """Serve the real app with an artificially slow POST /v1/verify."""
+
+    import asyncio
+
+    from starlette.requests import Request
+
+    app = create_app()
+
+    @app.middleware("http")
+    async def delay_verify(request: Request, call_next):  # noqa: ANN001, ANN202 - test stub
+        if request.url.path == "/v1/verify":
+            await asyncio.sleep(1.5)
+        return await call_next(request)
+
+    port = _free_port()
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    deadline = time.monotonic() + 20
+    while not server.started and time.monotonic() < deadline:
+        time.sleep(0.05)
+    if not server.started:  # pragma: no cover - environment dependent
+        pytest.skip("the stub API did not start in time")
+    yield f"http://127.0.0.1:{port}/"
+    server.should_exit = True
+    thread.join(timeout=10)
+
+
 def _seed_storage(target, **pairs: object) -> None:
     """Write localStorage before any page script runs, the only reliable way.
 
@@ -262,6 +293,190 @@ def test_settings_dialog_opens_on_a_visible_panel(server_url, browser) -> None:
     page.wait_for_selector("#settingsDialog", state="hidden")
     assert errors == []
     page.close()
+
+
+XSS_PAYLOAD = (
+    "Here is some prose with markup attempts.\n\n"
+    "<script>window.__xss = 1;</script>\n\n"
+    '<img src=x onerror="window.__xss = 2">\n\n'
+    "A [link](javascript:window.__xss = 3) and an [ordinary link](https://example.org/ok).\n\n"
+    "[[ISNAD-CITATION source=quran language=en reference=112:1]]"
+    '<b>Say, "He is Allāh, [who is] One</b>'
+    "[[/ISNAD-CITATION]]\n\n"
+    "Done."
+)
+
+
+def test_streamed_and_verified_text_cannot_inject_markup(server_url, browser) -> None:
+    """Model output and the API's echo of it are rendered as text, never as HTML."""
+
+    spec = importlib.util.spec_from_file_location("isnad_xss_provider", _PROVIDER_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.SCRIPT = XSS_PAYLOAD
+
+    port = _free_port()
+    server = module.ThreadingHTTPServer(("127.0.0.1", port), module.Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    context = browser.new_context(viewport={"width": 1400, "height": 950})
+    _seed_storage(
+        context,
+        **{
+            "isnad.gui.settings.v2": {
+                "apiBase": "",
+                "modelBase": f"http://127.0.0.1:{port}/v1",
+                "modelName": "fake-citation-model",
+                "modelRememberKey": False,
+                "temperature": 0.0,
+                "direction": "ltr",
+                "showTimestamps": True,
+            }
+        },
+    )
+    page = context.new_page()
+    dialogs: list[str] = []
+    errors: list[str] = []
+    page.on("dialog", lambda d: (dialogs.append(d.message), d.dismiss()))
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    try:
+        page.goto(server_url, wait_until="load")
+        page.wait_for_selector('#apiBadge[data-state="ready"]', timeout=20000)
+        page.fill("#composerInput", "Show me markup handling.")
+        page.click("#sendBtn")
+        page.wait_for_function(
+            "() => document.querySelectorAll('.citation code').length === 1", timeout=60000
+        )
+        page.wait_for_timeout(300)
+
+        assert page.evaluate("() => window.__xss") is None, "model output executed as script"
+        assert dialogs == [], f"a dialog was triggered: {dialogs}"
+        assert page.locator('img[src="x"]').count() == 0, "an injected image element was created"
+        assert page.locator('a[href^="javascript:"]').count() == 0, (
+            "a javascript: link was rendered"
+        )
+
+        # The payload is shown as text, which is the only safe rendering.
+        body = page.inner_text("body")
+        assert "<script>window.__xss = 1;</script>" in body
+        assert "<img src=x onerror=" in body
+        # The verified card echoes the submitted text escaped as well.
+        assert "<b>Say," in page.locator(".citation").first.inner_text()
+        assert errors == []
+    finally:
+        page.close()
+        context.close()
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_model_key_is_stored_only_when_the_user_asks_for_it(server_url, browser) -> None:
+    """The key lives in the tab unless "remember" is ticked, and never in the transcript."""
+
+    page = browser.new_page(viewport={"width": 1400, "height": 950})
+    errors: list[str] = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    page.goto(server_url, wait_until="load")
+    page.wait_for_selector('#apiBadge[data-state="ready"]', timeout=20000)
+
+    def configure(key: str, remember: bool) -> None:
+        page.click("#settingsBtn")
+        page.wait_for_selector("#settingsDialog[open]")
+        page.fill("#modelBaseInput", "https://api.example.org/v1")
+        page.fill("#modelNameInput", "example-model")
+        page.fill("#modelKeyInput", key)
+        if remember and not page.is_checked("#rememberKeyInput"):
+            page.check("#rememberKeyInput")
+        if not remember and page.is_checked("#rememberKeyInput"):
+            page.uncheck("#rememberKeyInput")
+        page.click("#saveSettingsBtn")
+        page.wait_for_selector("#settingsDialog", state="hidden")
+
+    # Session only: nothing is written to local storage.
+    configure("session-only-key", remember=False)
+    stored = page.evaluate("() => window.localStorage.getItem('isnad.gui.modelkey.v1')")
+    assert stored is None, "a key was written without permission"
+    assert "session-only-key" not in page.inner_text("body")
+
+    # Opting in writes it, and it survives a reload.
+    configure("remembered-key", remember=True)
+    assert page.evaluate(
+        "() => JSON.parse(window.localStorage.getItem('isnad.gui.modelkey.v1'))"
+    ) == ("remembered-key")
+    page.reload(wait_until="load")
+    page.wait_for_selector('#apiBadge[data-state="ready"]', timeout=20000)
+    page.click("#settingsBtn")
+    page.wait_for_selector("#settingsDialog[open]")
+    assert page.input_value("#modelKeyInput") == "remembered-key"
+    assert "remembered-key" not in page.inner_text("body")
+
+    # Forgetting removes it again.
+    page.click("#forgetKeyBtn")
+    page.wait_for_timeout(200)
+    assert page.evaluate("() => window.localStorage.getItem('isnad.gui.modelkey.v1')") is None
+    assert errors == []
+    page.close()
+
+
+def test_a_marked_quotation_is_held_while_it_is_being_checked(
+    slow_verify_api, scripted_model_url, browser
+) -> None:
+    """The held block shows a checking state and none of the model's quote text."""
+
+    context = browser.new_context(viewport={"width": 1400, "height": 950})
+    _seed_storage(
+        context,
+        **{
+            "isnad.gui.settings.v2": {
+                "apiBase": slow_verify_api,
+                "modelBase": scripted_model_url,
+                "modelName": "fake-citation-model",
+                "modelRememberKey": False,
+                "temperature": 0.0,
+                "direction": "ltr",
+                "showTimestamps": True,
+            }
+        },
+    )
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
+    page.on("pageerror", lambda e: errors.append(str(e)))
+
+    try:
+        page.goto(slow_verify_api, wait_until="load")
+        page.wait_for_selector('#apiBadge[data-state="ready"]', timeout=20000)
+        page.fill("#composerInput", "Quote Sūrat al-Ikhlāṣ.")
+        page.click("#sendBtn")
+
+        # The marked block is closed by the model, the check is in flight: a
+        # checking card stands in its place and the unverified wording is absent.
+        page.wait_for_selector(".citation--checking", timeout=30000)
+        checking_text = page.locator(".citation--checking").first.inner_text()
+        assert "checking" in checking_text.lower()
+        body = page.inner_text("body")
+        assert 'Say, "He is Allāh' not in body, "unverified quote shown while checking"
+        assert "Everlasting Guardian" not in body, "unverified quote shown while checking"
+        # Prose before the quotation is already on screen.
+        assert "Here is a short answer" in body
+
+        page.wait_for_function(
+            "() => document.querySelectorAll('.citation code').length === 2", timeout=60000
+        )
+        cards = page.locator(".citation")
+        assert "normalized_match" in cards.nth(0).inner_text()
+        assert "He is Allāh" in page.locator(".citation .evidence__text").first.inner_text()
+        assert errors == []
+    finally:
+        page.close()
+        context.close()
 
 
 def test_interface_states_that_a_source_failure_decided_nothing(server_url, browser) -> None:
